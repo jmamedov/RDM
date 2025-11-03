@@ -1,0 +1,136 @@
+﻿@* SourceNodeDialog.razor - Place in Components/Shared/ folder *@
+@using RDM.Core.Entities
+
+<div class="modal-overlay" @onclick="HandleCancel">
+    <div class="modal-content" @onclick:stopPropagation="true">
+        <h3 class="modal-title">@(Node == null ? "Add" : "Edit") Source Node</h3>
+
+        <div class="form-group">
+            <label class="form-label">Code *</label>
+            <input type="text" class="form-input" @bind="code" required />
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Name *</label>
+            <input type="text" class="form-input" @bind="name" required />
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Source System *</label>
+            <select class="form-input" @bind="sourceId" required>
+                <option value="0">Select...</option>
+                @if (SourceSystems != null)
+                {
+                    @foreach (var system in SourceSystems)
+                    {
+                        <option value="@system.Id">@(system.Name ?? system.Code ?? $"System {system.Id}")</option>
+                    }
+                }
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Entity Type *</label>
+            <select class="form-input" @bind="entityTypeId" required>
+                <option value="0">Select...</option>
+                @if (EntityTypes != null)
+                {
+                    @foreach (var type in EntityTypes)
+                    {
+                        <option value="@type.Id">@type.Name</option>
+                    }
+                }
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Locale *</label>
+            <select class="form-input" @bind="localeCode" required>
+                @if (Locales != null)
+                {
+                    @foreach (var locale in Locales)
+                    {
+                        <option value="@locale.Code">@locale.Name</option>
+                    }
+                }
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Description</label>
+            <textarea class="form-input" rows="3" @bind="description"></textarea>
+        </div>
+
+        <div class="modal-actions">
+            <button class="btn btn-secondary" @onclick="HandleCancel">Cancel</button>
+            <button class="btn btn-primary" @onclick="HandleSave">Save</button>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public SourceNode? Node { get; set; }
+    [Parameter] public List<RegionalLocale>? Locales { get; set; }
+    [Parameter] public List<ProductEntityType>? EntityTypes { get; set; }
+    [Parameter] public List<SourceSystem>? SourceSystems { get; set; }
+    [Parameter] public long? DefaultSourceId { get; set; }
+    [Parameter] public long? DefaultEntityTypeId { get; set; }
+    [Parameter] public string? DefaultLocaleCode { get; set; }
+    [Parameter] public EventCallback<SourceNode> OnSave { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+
+    private string code = "";
+    private string name = "";
+    private long sourceId = 0;
+    private long entityTypeId = 0;
+    private string localeCode = "en-US";
+    private string? description;
+
+    protected override void OnParametersSet()
+    {
+        if (Node != null)
+        {
+            // Editing existing node - load its values
+            code = Node.Code;
+            name = Node.Name;
+            sourceId = Node.SourceId;
+            entityTypeId = Node.EntityTypeId;
+            localeCode = Node.LocaleCode;
+            description = Node.Description;
+        }
+        else
+        {
+            // Adding new node - use defaults from left panel filters
+            code = "";
+            name = "";
+            sourceId = DefaultSourceId ?? 0;
+            entityTypeId = DefaultEntityTypeId ?? 0;
+            localeCode = DefaultLocaleCode ?? "en-US";
+            description = null;
+        }
+    }
+
+    private async Task HandleSave()
+    {
+        if (string.IsNullOrWhiteSpace(code) || string.IsNullOrWhiteSpace(name) ||
+            sourceId == 0 || entityTypeId == 0)
+        {
+            return;
+        }
+
+        var node = Node ?? new SourceNode();
+        node.Code = code;
+        node.Name = name;
+        node.SourceId = sourceId;
+        node.EntityTypeId = entityTypeId;
+        node.LocaleCode = localeCode;
+        node.Description = description;
+
+        await OnSave.InvokeAsync(node);
+    }
+
+    private async Task HandleCancel()
+    {
+        await OnCancel.InvokeAsync();
+    }
+}

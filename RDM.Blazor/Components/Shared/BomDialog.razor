@@ -1,0 +1,79 @@
+﻿@* BomDialog.razor - Place in Components/Shared/ folder *@
+@using RDM.Core.Entities
+
+<div class="modal-overlay" @onclick="HandleCancel">
+    <div class="modal-content" @onclick:stopPropagation="true">
+        <h3 class="modal-title">Add Hierarchy Relationship</h3>
+
+        <div class="form-group">
+            <label class="form-label">Parent Node</label>
+            <input type="text" class="form-input" value="@($"{ParentNode.Code} - {ParentNode.Name}")" disabled />
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Hierarchy Type *</label>
+            <select class="form-input" @bind="hierarchyTypeId" required>
+                <option value="0">Select...</option>
+                @if (EntityTypes != null)
+                {
+                    @foreach (var type in EntityTypes)
+                    {
+                        <option value="@type.Id">@type.Name</option>
+                    }
+                }
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Child Node *</label>
+            <select class="form-input" @bind="childNodeId" required>
+                <option value="0">Select...</option>
+                @if (SourceNodes != null)
+                {
+                    @foreach (var node in SourceNodes.Where(n => n.Id != ParentNode.Id))
+                    {
+                        <option value="@node.Id">@node.Code - @node.Name</option>
+                    }
+                }
+            </select>
+        </div>
+
+        <div class="modal-actions">
+            <button class="btn btn-secondary" @onclick="HandleCancel">Cancel</button>
+            <button class="btn btn-success" @onclick="HandleSave">Add</button>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public SourceNode ParentNode { get; set; } = default!;
+    [Parameter] public List<ProductEntityType>? EntityTypes { get; set; }
+    [Parameter] public List<SourceNode>? SourceNodes { get; set; }
+    [Parameter] public EventCallback<NodeBillOfMaterial> OnSave { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+
+    private long hierarchyTypeId = 0;
+    private long childNodeId = 0;
+
+    private async Task HandleSave()
+    {
+        if (hierarchyTypeId == 0 || childNodeId == 0)
+        {
+            return;
+        }
+
+        var bom = new NodeBillOfMaterial
+        {
+            HierarchyTypeId = hierarchyTypeId,
+            ParentNodeId = ParentNode.Id,
+            ChildNodeId = childNodeId
+        };
+
+        await OnSave.InvokeAsync(bom);
+    }
+
+    private async Task HandleCancel()
+    {
+        await OnCancel.InvokeAsync();
+    }
+}

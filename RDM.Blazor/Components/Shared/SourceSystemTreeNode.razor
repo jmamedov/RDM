@@ -1,0 +1,47 @@
+﻿@* SourceSystemTreeNode.razor - Place in Components/Shared/ folder *@
+@using RDM.Core.Entities
+
+<div class="tree-node">
+    <div class="tree-node-content @(SelectedId == System.Id ? "selected" : "")">
+        @if (System.Children != null && System.Children.Any())
+        {
+            <button class="tree-toggle" @onclick="ToggleExpand">
+                @(isExpanded ? "▼" : "▶")
+            </button>
+        }
+        <span class="tree-label" @onclick="@(() => OnSelect.InvokeAsync(System.Id))">
+            @(System.Name ?? System.Code ?? $"System {System.Id}")
+        </span>
+        <button class="tree-action" @onclick="@(() => OnDelete.InvokeAsync(System.Id))" title="Delete">
+            🗑️
+        </button>
+    </div>
+
+    @if (isExpanded && System.Children != null)
+    {
+        <div class="tree-children">
+            @foreach (var child in System.Children)
+            {
+                <SourceSystemTreeNode System="@child"
+                                      SelectedId="@SelectedId"
+                                      OnSelect="@OnSelect"
+                                      OnDelete="@OnDelete" />
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public SourceSystem System { get; set; } = default!;
+    [Parameter] public long? SelectedId { get; set; }
+    [Parameter] public EventCallback<long> OnSelect { get; set; }
+    [Parameter] public EventCallback<long> OnDelete { get; set; }
+
+    private bool isExpanded = false;
+
+    private void ToggleExpand()
+    {
+        isExpanded = !isExpanded;
+    }
+}
+

@@ -1,0 +1,402 @@
+﻿@page "/"
+@using RDM.Core.Entities
+@using RDM.Blazor.Services
+@inject ISourceSystemService SourceSystemService
+@inject IProductEntityTypeService EntityTypeService
+@inject IRegionalLocaleService LocaleService
+@inject ISourceNodeService SourceNodeService
+@inject INodeBillOfMaterialService BomService
+@inject IJSRuntime JSRuntime
+@rendermode InteractiveServer
+
+<PageTitle>Reference Data Manager</PageTitle>
+
+<div class="rdm-container">
+    <!-- Left Panel -->
+    <div class="left-panel">
+        <h2 class="panel-title">Reference Data Manager</h2>
+
+        <!-- Source Systems -->
+        <div class="filter-section">
+            <h3 class="filter-title">Source Systems</h3>
+            <div class="tree-container">
+                @if (sourceSystems != null)
+                {
+                    @foreach (var system in sourceSystems)
+                    {
+                        <SourceSystemTreeNode System="@system"
+                                              SelectedId="@selectedSourceSystemId"
+                                              OnSelect="@HandleSourceSystemSelect"
+                                              OnDelete="@HandleSourceSystemDelete" />
+                    }
+                }
+            </div>
+        </div>
+
+        <!-- Entity Type Filter -->
+        <div class="filter-section">
+            <label class="filter-label">Entity Type</label>
+            <select class="filter-select" @bind="selectedEntityTypeId" @bind:after="LoadSourceNodes">
+                <option value="">All Types</option>
+                @if (entityTypes != null)
+                {
+                    @foreach (var type in entityTypes)
+                    {
+                        <option value="@type.Id">@type.Name</option>
+                    }
+                }
+            </select>
+        </div>
+
+        <!-- Locale Filter -->
+        <div class="filter-section">
+            <label class="filter-label">Locale</label>
+            <select class="filter-select" @bind="selectedLocaleCode" @bind:after="LoadSourceNodes">
+                <option value="">All Locales</option>
+                @if (locales != null)
+                {
+                    @foreach (var locale in locales)
+                    {
+                        <option value="@locale.Code">@locale.Name</option>
+                    }
+                }
+            </select>
+        </div>
+    </div>
+
+    <!-- Right Panel (Main Content) -->
+    <div class="right-panel">
+        <!-- Source Nodes Grid -->
+        <div class="nodes-panel" id="nodesPanel">
+            <div class="panel-header">
+                <h3 class="panel-header-title">Source Nodes</h3>
+                <button class="btn btn-primary" @onclick="ShowNodeDialog">
+                    <span class="btn-icon">➕</span> Add Node
+                </button>
+            </div>
+
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Code</th>
+                            <th>Name</th>
+                            <th>Description</th>
+                            <th>Entity Type</th>
+                            <th>Locale</th>
+                            <th>Source System</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (sourceNodes != null && sourceNodes.Any())
+                        {
+                            @foreach (var node in sourceNodes)
+                            {
+                                <tr class="@(selectedNode?.Id == node.Id ? "selected" : "")"
+                                    @onclick="@(() => SelectNode(node))">
+                                    <td>@node.Code</td>
+                                    <td>@node.Name</td>
+                                    <td>@node.Description</td>
+                                    <td>@node.EntityType?.Name</td>
+                                    <td>@node.Locale?.Name</td>
+                                    <td>@node.SourceSystem?.Name</td>
+                                    <td>
+                                        <button class="btn-icon-action" @onclick="@(() => EditNode(node))" @onclick:stopPropagation="true">
+                                            ✏️
+                                        </button>
+                                        <button class="btn-icon-action" @onclick="@(() => DeleteNode(node.Id))" @onclick:stopPropagation="true">
+                                            🗑️
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="7" class="empty-state">No nodes found. Select filters or add a new node.</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Resize Handle -->
+        <div class="resize-handle" id="resizeHandle">
+            <div class="resize-handle-bar"></div>
+        </div>
+
+        <!-- Bill of Materials Panel -->
+        <div class="bom-panel" id="bomPanel">
+            <div class="panel-header">
+                <h3 class="panel-header-title">
+                    Hierarchy (Bill of Materials)
+                    @if (selectedNode != null)
+                    {
+                        <span> - @selectedNode.Name</span>
+                    }
+                </h3>
+                @if (selectedNode != null)
+                {
+                    <button class="btn btn-success" @onclick="ShowBomDialog">
+                        <span class="btn-icon">➕</span> Add Child
+                    </button>
+                }
+            </div>
+
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Hierarchy Type</th>
+                            <th>Parent</th>
+                            <th>Child</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (billOfMaterials != null && billOfMaterials.Any())
+                        {
+                            @foreach (var bom in billOfMaterials)
+                            {
+                                <tr>
+                                    <td>@bom.HierarchyType?.Name</td>
+                                    <td>@bom.ParentNode?.Code - @bom.ParentNode?.Name</td>
+                                    <td>@bom.ChildNode?.Code - @bom.ChildNode?.Name</td>
+                                    <td>
+                                        <button class="btn-icon-action" @onclick="@(() => DeleteBom(bom))">
+                                            🗑️
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else if (selectedNode == null)
+                        {
+                            <tr>
+                                <td colspan="4" class="empty-state">Select a node to view its hierarchy</td>
+                            </tr>
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="4" class="empty-state">No hierarchy relationships found</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Node Dialog -->
+@if (showNodeDialog)
+{
+    <SourceNodeDialog Node="@editingNode"
+                      Locales="@locales"
+                      EntityTypes="@entityTypes"
+                      SourceSystems="@allSourceSystems"
+                      DefaultSourceId="@selectedSourceSystemId"
+                      DefaultEntityTypeId="@selectedEntityTypeId"
+                      DefaultLocaleCode="@selectedLocaleCode"
+                      OnSave="@HandleNodeSave"
+                      OnCancel="@HideNodeDialog" />
+}
+
+<!-- BOM Dialog -->
+@if (showBomDialog && selectedNode != null)
+{
+    <BomDialog ParentNode="@selectedNode"
+               EntityTypes="@entityTypes"
+               SourceNodes="@sourceNodes"
+               OnSave="@HandleBomSave"
+               OnCancel="@HideBomDialog" />
+}
+
+@code {
+    private List<SourceSystem>? sourceSystems;
+    private List<SourceSystem>? allSourceSystems;
+    private List<ProductEntityType>? entityTypes;
+    private List<RegionalLocale>? locales;
+    private List<SourceNode>? sourceNodes;
+    private List<NodeBillOfMaterial>? billOfMaterials;
+
+    private long? selectedSourceSystemId;
+    private long? selectedEntityTypeId;
+    private string? selectedLocaleCode;
+    private SourceNode? selectedNode;
+
+    private bool showNodeDialog;
+    private bool showBomDialog;
+    private SourceNode? editingNode;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("initializeResizer");
+            }
+            catch (Exception ex)
+            {
+                // Log error but don't crash - JavaScript might not be loaded yet
+                Console.WriteLine($"Error initializing resizer: {ex.Message}");
+            }
+        }
+    }
+
+    private async Task LoadData()
+    {
+        sourceSystems = await SourceSystemService.GetHierarchyAsync();
+        allSourceSystems = await SourceSystemService.GetAllAsync();
+        entityTypes = await EntityTypeService.GetAllAsync();
+        locales = await LocaleService.GetAllAsync();
+        await LoadSourceNodes();
+    }
+
+    private async Task LoadSourceNodes()
+    {
+        sourceNodes = await SourceNodeService.GetAllAsync(selectedSourceSystemId, selectedEntityTypeId, selectedLocaleCode);
+        StateHasChanged();
+    }
+
+    private async Task HandleSourceSystemSelect(long systemId)
+    {
+        selectedSourceSystemId = systemId;
+        await LoadSourceNodes();
+    }
+
+    private async Task HandleSourceSystemDelete(long systemId)
+    {
+        bool confirmed = await JSRuntime.InvokeAsync<bool>("confirm", "Delete this system?");
+        if (confirmed)
+        {
+            await SourceSystemService.DeleteAsync(systemId);
+            await LoadData();
+        }
+    }
+
+    private async Task SelectNode(SourceNode node)
+    {
+        selectedNode = node;
+        billOfMaterials = await BomService.GetAllAsync(node.Id);
+    }
+
+    private void ShowNodeDialog()
+    {
+        editingNode = null;
+        showNodeDialog = true;
+    }
+
+    private void EditNode(SourceNode node)
+    {
+        editingNode = node;
+        showNodeDialog = true;
+    }
+
+    private void HideNodeDialog()
+    {
+        showNodeDialog = false;
+        editingNode = null;
+    }
+
+    private async Task HandleNodeSave(SourceNode node)
+    {
+        try
+        {
+            if (editingNode != null)
+            {
+                node.Id = editingNode.Id;
+                await SourceNodeService.UpdateAsync(node);
+            }
+            else
+            {
+                await SourceNodeService.CreateAsync(node);
+            }
+            await LoadSourceNodes();
+            HideNodeDialog();
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error saving node: {ex.Message}");
+        }
+    }
+
+    private async Task DeleteNode(long nodeId)
+    {
+        bool confirmed = await JSRuntime.InvokeAsync<bool>("confirm", "Delete this node?");
+        if (confirmed)
+        {
+            try
+            {
+                await SourceNodeService.DeleteAsync(nodeId);
+                await LoadSourceNodes();
+                if (selectedNode?.Id == nodeId)
+                {
+                    selectedNode = null;
+                    billOfMaterials = null;
+                }
+            }
+            catch (Exception ex)
+            {
+                await JSRuntime.InvokeVoidAsync("alert", $"Error deleting node: {ex.Message}");
+            }
+        }
+    }
+
+    private void ShowBomDialog()
+    {
+        showBomDialog = true;
+    }
+
+    private void HideBomDialog()
+    {
+        showBomDialog = false;
+    }
+
+    private async Task HandleBomSave(NodeBillOfMaterial bom)
+    {
+        try
+        {
+            await BomService.CreateAsync(bom);
+            if (selectedNode != null)
+            {
+                billOfMaterials = await BomService.GetAllAsync(selectedNode.Id);
+            }
+            HideBomDialog();
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error saving hierarchy: {ex.Message}");
+        }
+    }
+
+    private async Task DeleteBom(NodeBillOfMaterial bom)
+    {
+        bool confirmed = await JSRuntime.InvokeAsync<bool>("confirm", "Delete this hierarchy relationship?");
+        if (confirmed)
+        {
+            try
+            {
+                await BomService.DeleteAsync(bom.HierarchyTypeId, bom.ParentNodeId, bom.ChildNodeId);
+                if (selectedNode != null)
+                {
+                    billOfMaterials = await BomService.GetAllAsync(selectedNode.Id);
+                }
+            }
+            catch (Exception ex)
+            {
+                await JSRuntime.InvokeVoidAsync("alert", $"Error deleting hierarchy: {ex.Message}");
+            }
+        }
+    }
+}
