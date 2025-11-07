@@ -3,13 +3,12 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace RDM.Core.Entities
 {
-    [Table("PROD_ENT_TYP", Schema = "PROD04")]
-    public class ProductEntityType
+    [Table("HRCHY_TYP", Schema = "PROD04")]
+    public class HierarchyType
     {
         [Key]
         [Column("ID")]
-        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-        public long Id { get; set; }
+        public int Id { get; set; }
 
         [Column("CD")]
         [Required]
@@ -26,6 +25,6 @@ namespace RDM.Core.Entities
         public string? Description { get; set; }
 
         // Navigation properties
-        public virtual ICollection<SourceNode> SourceNodes { get; set; } = new List<SourceNode>();
+        public virtual ICollection<NodeBillOfMaterial> NodeBillOfMaterials { get; set; } = new List<NodeBillOfMaterial>();
     }
 }

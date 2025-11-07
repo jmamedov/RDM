@@ -12,6 +12,9 @@
         <span class="tree-label" @onclick="@(() => OnSelect.InvokeAsync(System.Id))">
             @(System.Name ?? System.Code ?? $"System {System.Id}")
         </span>
+        <button class="tree-action" @onclick="@(() => OnEdit.InvokeAsync(System))" title="Edit">
+            ✏️
+        </button>
         <button class="tree-action" @onclick="@(() => OnDelete.InvokeAsync(System.Id))" title="Delete">
             🗑️
         </button>
@@ -25,6 +28,7 @@
                 <SourceSystemTreeNode System="@child"
                                       SelectedId="@SelectedId"
                                       OnSelect="@OnSelect"
+                                      OnEdit="@OnEdit"
                                       OnDelete="@OnDelete" />
             }
         </div>
@@ -35,6 +39,7 @@
     [Parameter] public SourceSystem System { get; set; } = default!;
     [Parameter] public long? SelectedId { get; set; }
     [Parameter] public EventCallback<long> OnSelect { get; set; }
+    [Parameter] public EventCallback<SourceSystem> OnEdit { get; set; }
     [Parameter] public EventCallback<long> OnDelete { get; set; }
 
     private bool isExpanded = false;
@@ -44,4 +49,3 @@
         isExpanded = !isExpanded;
     }
 }
-

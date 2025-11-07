@@ -32,7 +32,7 @@ window.initializeResizer = function () {
         const newHeight = startNodesPanelHeight + deltaY;
         const containerHeight = nodesPanel.parentElement.offsetHeight;
         const minHeight = 200;
-        const maxHeight = containerHeight - 200; // Leave at least 200px for bottom panel
+        const maxHeight = containerHeight - 200;
 
         if (newHeight >= minHeight && newHeight <= maxHeight) {
             nodesPanel.style.height = newHeight + 'px';
@@ -47,4 +47,26 @@ window.initializeResizer = function () {
             document.body.style.userSelect = '';
         }
     });
+};
+
+// Scroll row into view for keyboard navigation
+window.scrollRowIntoView = function (tableElement, rowIndex) {
+    try {
+        const tbody = tableElement.querySelector('tbody');
+        if (!tbody) return;
+
+        const rows = tbody.querySelectorAll('tr[data-index]');
+        if (rowIndex < 0 || rowIndex >= rows.length) return;
+
+        const row = rows[rowIndex];
+        if (!row) return;
+
+        row.scrollIntoView({
+            behavior: 'smooth',
+            block: 'nearest',
+            inline: 'nearest'
+        });
+    } catch (error) {
+        console.error('Error scrolling row into view:', error);
+    }
 };

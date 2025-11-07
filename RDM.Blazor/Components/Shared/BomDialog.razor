@@ -14,9 +14,9 @@
             <label class="form-label">Hierarchy Type *</label>
             <select class="form-input" @bind="hierarchyTypeId" required>
                 <option value="0">Select...</option>
-                @if (EntityTypes != null)
+                @if (HierarchyTypes != null)
                 {
-                    @foreach (var type in EntityTypes)
+                    @foreach (var type in HierarchyTypes)
                     {
                         <option value="@type.Id">@type.Name</option>
                     }
@@ -47,12 +47,12 @@
 
 @code {
     [Parameter] public SourceNode ParentNode { get; set; } = default!;
-    [Parameter] public List<ProductEntityType>? EntityTypes { get; set; }
+    [Parameter] public List<HierarchyType>? HierarchyTypes { get; set; }
     [Parameter] public List<SourceNode>? SourceNodes { get; set; }
     [Parameter] public EventCallback<NodeBillOfMaterial> OnSave { get; set; }
     [Parameter] public EventCallback OnCancel { get; set; }
 
-    private long hierarchyTypeId = 0;
+    private int hierarchyTypeId = 0;
     private long childNodeId = 0;
 
     private async Task HandleSave()

@@ -3,6 +3,7 @@
 @using RDM.Blazor.Services
 @inject ISourceSystemService SourceSystemService
 @inject IProductEntityTypeService EntityTypeService
+@inject IHierarchyTypeService HierarchyTypeService
 @inject IRegionalLocaleService LocaleService
 @inject ISourceNodeService SourceNodeService
 @inject INodeBillOfMaterialService BomService
@@ -18,7 +19,14 @@
 
         <!-- Source Systems -->
         <div class="filter-section">
-            <h3 class="filter-title">Source Systems</h3>
+            <div class="section-header">
+                <h3 class="filter-title">Source Systems</h3>
+                <div class="section-actions">
+                    <button class="btn-icon-action" @onclick="ShowSourceSystemDialog" title="Add Source System">
+                        ➕
+                    </button>
+                </div>
+            </div>
             <div class="tree-container">
                 @if (sourceSystems != null)
                 {
@@ -27,6 +35,7 @@
                         <SourceSystemTreeNode System="@system"
                                               SelectedId="@selectedSourceSystemId"
                                               OnSelect="@HandleSourceSystemSelect"
+                                              OnEdit="@EditSourceSystem"
                                               OnDelete="@HandleSourceSystemDelete" />
                     }
                 }
@@ -35,7 +44,14 @@
 
         <!-- Entity Type Filter -->
         <div class="filter-section">
-            <label class="filter-label">Entity Type</label>
+            <div class="section-header">
+                <label class="filter-label">Entity Type</label>
+                <div class="section-actions">
+                    <button class="btn-icon-action" @onclick="ShowEntityTypeDialog" title="Add Entity Type">
+                        ➕
+                    </button>
+                </div>
+            </div>
             <select class="filter-select" @bind="selectedEntityTypeId" @bind:after="LoadSourceNodes">
                 <option value="">All Types</option>
                 @if (entityTypes != null)
@@ -46,11 +62,24 @@
                     }
                 }
             </select>
+            @if (selectedEntityTypeId.HasValue && selectedEntityTypeId.Value > 0)
+            {
+                <button class="btn-icon-action mt-1" @onclick="EditSelectedEntityType" title="Edit Selected">
+                    ✏️ Edit
+                </button>
+            }
         </div>
 
         <!-- Locale Filter -->
         <div class="filter-section">
-            <label class="filter-label">Locale</label>
+            <div class="section-header">
+                <label class="filter-label">Locale</label>
+                <div class="section-actions">
+                    <button class="btn-icon-action" @onclick="ShowLocaleDialog" title="Add Locale">
+                        ➕
+                    </button>
+                </div>
+            </div>
             <select class="filter-select" @bind="selectedLocaleCode" @bind:after="LoadSourceNodes">
                 <option value="">All Locales</option>
                 @if (locales != null)
@@ -61,6 +90,12 @@
                     }
                 }
             </select>
+            @if (!string.IsNullOrEmpty(selectedLocaleCode))
+            {
+                <button class="btn-icon-action mt-1" @onclick="EditSelectedLocale" title="Edit Selected">
+                    ✏️ Edit
+                </button>
+            }
         </div>
     </div>
 
@@ -76,7 +111,7 @@
             </div>
 
             <div class="table-container">
-                <table class="data-table">
+                <table class="data-table" tabindex="0" @onkeydown="HandleNodesKeyDown" @ref="nodesTableRef">
                     <thead>
                         <tr>
                             <th>Code</th>
@@ -91,10 +126,13 @@
                     <tbody>
                         @if (sourceNodes != null && sourceNodes.Any())
                         {
-                            @foreach (var node in sourceNodes)
+                            @for (int i = 0; i < sourceNodes.Count; i++)
                             {
+                                var node = sourceNodes[i];
+                                var index = i;
                                 <tr class="@(selectedNode?.Id == node.Id ? "selected" : "")"
-                                    @onclick="@(() => SelectNode(node))">
+                                    @onclick="@(() => SelectNode(node))"
+                                    data-index="@index">
                                     <td>@node.Code</td>
                                     <td>@node.Name</td>
                                     <td>@node.Description</td>
@@ -131,13 +169,34 @@
         <!-- Bill of Materials Panel -->
         <div class="bom-panel" id="bomPanel">
             <div class="panel-header">
-                <h3 class="panel-header-title">
-                    Hierarchy (Bill of Materials)
-                    @if (selectedNode != null)
-                    {
-                        <span> - @selectedNode.Name</span>
-                    }
-                </h3>
+                <div style="flex: 1;">
+                    <h3 class="panel-header-title" style="margin-bottom: 0.5rem;">
+                        Hierarchy (Bill of Materials)
+                        @if (selectedNode != null)
+                        {
+                            <span> - @selectedNode.Name</span>
+                        }
+                    </h3>
+                    <div style="display: flex; gap: 1rem; align-items: center; margin-top: 0.5rem;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <label style="font-size: 0.875rem; font-weight: 500;">Hierarchy Type:</label>
+                            <select class="filter-select" style="width: 200px; padding: 0.375rem;"
+                                    @bind="selectedHierarchyTypeId" @bind:after="LoadBillOfMaterials">
+                                <option value="">All Types</option>
+                                @if (hierarchyTypes != null)
+                                {
+                                    @foreach (var type in hierarchyTypes)
+                                    {
+                                        <option value="@type.Id">@type.Name</option>
+                                    }
+                                }
+                            </select>
+                            <button class="btn-icon-action" @onclick="ShowHierarchyTypeDialog" title="Manage Hierarchy Types">
+                                ⚙️
+                            </button>
+                        </div>
+                    </div>
+                </div>
                 @if (selectedNode != null)
                 {
                     <button class="btn btn-success" @onclick="ShowBomDialog">
@@ -147,26 +206,30 @@
             </div>
 
             <div class="table-container">
-                <table class="data-table">
+                <table class="data-table" tabindex="0" @onkeydown="HandleBomKeyDown" @ref="bomTableRef">
                     <thead>
                         <tr>
                             <th>Hierarchy Type</th>
-                            <th>Parent</th>
-                            <th>Child</th>
+                            <th>@GetParentColumnLabel()</th>
+                            <th>@GetChildColumnLabel()</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         @if (billOfMaterials != null && billOfMaterials.Any())
                         {
-                            @foreach (var bom in billOfMaterials)
+                            @for (int i = 0; i < billOfMaterials.Count; i++)
                             {
-                                <tr>
+                                var bom = billOfMaterials[i];
+                                var index = i;
+                                <tr class="@(selectedBomIndex == index ? "selected" : "")"
+                                    @onclick="@(() => SelectBom(index))"
+                                    data-index="@index">
                                     <td>@bom.HierarchyType?.Name</td>
                                     <td>@bom.ParentNode?.Code - @bom.ParentNode?.Name</td>
                                     <td>@bom.ChildNode?.Code - @bom.ChildNode?.Name</td>
                                     <td>
-                                        <button class="btn-icon-action" @onclick="@(() => DeleteBom(bom))">
+                                        <button class="btn-icon-action" @onclick="@(() => DeleteBom(bom))" @onclick:stopPropagation="true">
                                             🗑️
                                         </button>
                                     </td>
@@ -210,28 +273,77 @@
 @if (showBomDialog && selectedNode != null)
 {
     <BomDialog ParentNode="@selectedNode"
-               EntityTypes="@entityTypes"
+               HierarchyTypes="@hierarchyTypes"
                SourceNodes="@sourceNodes"
                OnSave="@HandleBomSave"
                OnCancel="@HideBomDialog" />
+}
+
+<!-- Source System Dialog -->
+@if (showSourceSystemDialog)
+{
+    <SourceSystemDialog System="@editingSourceSystem"
+                        AllSystems="@allSourceSystems"
+                        OnSave="@HandleSourceSystemSave"
+                        OnCancel="@HideSourceSystemDialog" />
+}
+
+<!-- Entity Type Dialog -->
+@if (showEntityTypeDialog)
+{
+    <EntityTypeDialog EntityType="@editingEntityType"
+                      OnSave="@HandleEntityTypeSave"
+                      OnCancel="@HideEntityTypeDialog" />
+}
+
+<!-- Hierarchy Type Dialog -->
+@if (showHierarchyTypeDialog)
+{
+    <HierarchyTypeDialog HierarchyType="@editingHierarchyType"
+                         OnSave="@HandleHierarchyTypeSave"
+                         OnCancel="@HideHierarchyTypeDialog" />
+}
+
+<!-- Locale Dialog -->
+@if (showLocaleDialog)
+{
+    <LocaleDialog Locale="@editingLocale"
+                  OnSave="@HandleLocaleSave"
+                  OnCancel="@HideLocaleDialog" />
 }
 
 @code {
     private List<SourceSystem>? sourceSystems;
     private List<SourceSystem>? allSourceSystems;
     private List<ProductEntityType>? entityTypes;
+    private List<HierarchyType>? hierarchyTypes;
     private List<RegionalLocale>? locales;
     private List<SourceNode>? sourceNodes;
     private List<NodeBillOfMaterial>? billOfMaterials;
+    private List<NodeBillOfMaterial>? allBillOfMaterials;
 
     private long? selectedSourceSystemId;
     private long? selectedEntityTypeId;
     private string? selectedLocaleCode;
+    private int? selectedHierarchyTypeId;
     private SourceNode? selectedNode;
+    private int selectedBomIndex = -1;
+
+    private ElementReference nodesTableRef;
+    private ElementReference bomTableRef;
 
     private bool showNodeDialog;
     private bool showBomDialog;
+    private bool showSourceSystemDialog;
+    private bool showEntityTypeDialog;
+    private bool showHierarchyTypeDialog;
+    private bool showLocaleDialog;
+
     private SourceNode? editingNode;
+    private SourceSystem? editingSourceSystem;
+    private ProductEntityType? editingEntityType;
+    private HierarchyType? editingHierarchyType;
+    private RegionalLocale? editingLocale;
 
     protected override async Task OnInitializedAsync()
     {
@@ -248,7 +360,6 @@
             }
             catch (Exception ex)
             {
-                // Log error but don't crash - JavaScript might not be loaded yet
                 Console.WriteLine($"Error initializing resizer: {ex.Message}");
             }
         }
@@ -259,6 +370,7 @@
         sourceSystems = await SourceSystemService.GetHierarchyAsync();
         allSourceSystems = await SourceSystemService.GetAllAsync();
         entityTypes = await EntityTypeService.GetAllAsync();
+        hierarchyTypes = await HierarchyTypeService.GetAllAsync();
         locales = await LocaleService.GetAllAsync();
         await LoadSourceNodes();
     }
@@ -288,7 +400,195 @@
     private async Task SelectNode(SourceNode node)
     {
         selectedNode = node;
-        billOfMaterials = await BomService.GetAllAsync(node.Id);
+        selectedBomIndex = -1;
+        await LoadBillOfMaterials();
+    }
+
+    private void SelectBom(int index)
+    {
+        selectedBomIndex = index;
+    }
+
+    private async Task LoadBillOfMaterials()
+    {
+        if (selectedNode == null)
+        {
+            billOfMaterials = null;
+            allBillOfMaterials = null;
+            return;
+        }
+
+        allBillOfMaterials = await BomService.GetAllAsync(selectedNode.Id);
+
+        if (selectedHierarchyTypeId.HasValue && selectedHierarchyTypeId.Value > 0)
+        {
+            billOfMaterials = allBillOfMaterials
+                .Where(b => b.HierarchyTypeId == selectedHierarchyTypeId.Value)
+                .ToList();
+        }
+        else
+        {
+            billOfMaterials = allBillOfMaterials;
+        }
+    }
+
+    private string GetParentColumnLabel()
+    {
+        if (selectedNode?.EntityType?.Name != null)
+        {
+            return selectedNode.EntityType.Name;
+        }
+        return "Parent";
+    }
+
+    private string GetChildColumnLabel()
+    {
+        if (billOfMaterials == null || !billOfMaterials.Any())
+        {
+            return "Child";
+        }
+
+        var childEntityTypes = billOfMaterials
+            .Where(b => b.ChildNode?.EntityType?.Name != null)
+            .Select(b => b.ChildNode!.EntityType!.Name)
+            .Distinct()
+            .ToList();
+
+        if (childEntityTypes.Count == 1)
+        {
+            return childEntityTypes[0];
+        }
+
+        return "Child";
+    }
+
+    private async Task HandleNodesKeyDown(KeyboardEventArgs e)
+    {
+        if (sourceNodes == null || !sourceNodes.Any())
+            return;
+
+        int currentIndex = selectedNode != null
+            ? sourceNodes.FindIndex(n => n.Id == selectedNode.Id)
+            : -1;
+
+        switch (e.Key)
+        {
+            case "ArrowDown":
+                if (currentIndex < sourceNodes.Count - 1)
+                {
+                    await SelectNode(sourceNodes[currentIndex + 1]);
+                    await ScrollRowIntoView(nodesTableRef, currentIndex + 1);
+                }
+                break;
+
+            case "ArrowUp":
+                if (currentIndex > 0)
+                {
+                    await SelectNode(sourceNodes[currentIndex - 1]);
+                    await ScrollRowIntoView(nodesTableRef, currentIndex - 1);
+                }
+                else if (currentIndex == -1 && sourceNodes.Any())
+                {
+                    await SelectNode(sourceNodes[0]);
+                    await ScrollRowIntoView(nodesTableRef, 0);
+                }
+                break;
+
+            case "Enter":
+                if (selectedNode != null)
+                {
+                    EditNode(selectedNode);
+                }
+                break;
+
+            case "Delete":
+                if (selectedNode != null)
+                {
+                    await DeleteNode(selectedNode.Id);
+                }
+                break;
+
+            case "Home":
+                if (sourceNodes.Any())
+                {
+                    await SelectNode(sourceNodes[0]);
+                    await ScrollRowIntoView(nodesTableRef, 0);
+                }
+                break;
+
+            case "End":
+                if (sourceNodes.Any())
+                {
+                    await SelectNode(sourceNodes[^1]);
+                    await ScrollRowIntoView(nodesTableRef, sourceNodes.Count - 1);
+                }
+                break;
+        }
+    }
+
+    private async Task HandleBomKeyDown(KeyboardEventArgs e)
+    {
+        if (billOfMaterials == null || !billOfMaterials.Any())
+            return;
+
+        switch (e.Key)
+        {
+            case "ArrowDown":
+                if (selectedBomIndex < billOfMaterials.Count - 1)
+                {
+                    SelectBom(selectedBomIndex + 1);
+                    await ScrollRowIntoView(bomTableRef, selectedBomIndex);
+                }
+                else if (selectedBomIndex == -1 && billOfMaterials.Any())
+                {
+                    SelectBom(0);
+                    await ScrollRowIntoView(bomTableRef, 0);
+                }
+                break;
+
+            case "ArrowUp":
+                if (selectedBomIndex > 0)
+                {
+                    SelectBom(selectedBomIndex - 1);
+                    await ScrollRowIntoView(bomTableRef, selectedBomIndex);
+                }
+                break;
+
+            case "Delete":
+                if (selectedBomIndex >= 0 && selectedBomIndex < billOfMaterials.Count)
+                {
+                    await DeleteBom(billOfMaterials[selectedBomIndex]);
+                }
+                break;
+
+            case "Home":
+                if (billOfMaterials.Any())
+                {
+                    SelectBom(0);
+                    await ScrollRowIntoView(bomTableRef, 0);
+                }
+                break;
+
+            case "End":
+                if (billOfMaterials.Any())
+                {
+                    SelectBom(billOfMaterials.Count - 1);
+                    await ScrollRowIntoView(bomTableRef, billOfMaterials.Count - 1);
+                }
+                break;
+        }
+    }
+
+    private async Task ScrollRowIntoView(ElementReference tableRef, int rowIndex)
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("scrollRowIntoView", tableRef, rowIndex);
+        }
+        catch (Exception)
+        {
+            // Ignore JavaScript errors
+        }
     }
 
     private void ShowNodeDialog()
@@ -344,6 +644,7 @@
                 {
                     selectedNode = null;
                     billOfMaterials = null;
+                    allBillOfMaterials = null;
                 }
             }
             catch (Exception ex)
@@ -368,10 +669,7 @@
         try
         {
             await BomService.CreateAsync(bom);
-            if (selectedNode != null)
-            {
-                billOfMaterials = await BomService.GetAllAsync(selectedNode.Id);
-            }
+            await LoadBillOfMaterials();
             HideBomDialog();
         }
         catch (Exception ex)
@@ -388,15 +686,181 @@
             try
             {
                 await BomService.DeleteAsync(bom.HierarchyTypeId, bom.ParentNodeId, bom.ChildNodeId);
-                if (selectedNode != null)
-                {
-                    billOfMaterials = await BomService.GetAllAsync(selectedNode.Id);
-                }
+                await LoadBillOfMaterials();
             }
             catch (Exception ex)
             {
                 await JSRuntime.InvokeVoidAsync("alert", $"Error deleting hierarchy: {ex.Message}");
             }
+        }
+    }
+
+    // Source System Management
+    private void ShowSourceSystemDialog()
+    {
+        editingSourceSystem = null;
+        showSourceSystemDialog = true;
+    }
+
+    private void EditSourceSystem(SourceSystem system)
+    {
+        editingSourceSystem = system;
+        showSourceSystemDialog = true;
+    }
+
+    private void HideSourceSystemDialog()
+    {
+        showSourceSystemDialog = false;
+        editingSourceSystem = null;
+    }
+
+    private async Task HandleSourceSystemSave(SourceSystem system)
+    {
+        try
+        {
+            if (editingSourceSystem != null)
+            {
+                system.Id = editingSourceSystem.Id;
+                await SourceSystemService.UpdateAsync(system);
+            }
+            else
+            {
+                await SourceSystemService.CreateAsync(system);
+            }
+            await LoadData();
+            HideSourceSystemDialog();
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error saving source system: {ex.Message}");
+        }
+    }
+
+    // Entity Type Management
+    private void ShowEntityTypeDialog()
+    {
+        editingEntityType = null;
+        showEntityTypeDialog = true;
+    }
+
+    private void EditSelectedEntityType()
+    {
+        if (selectedEntityTypeId.HasValue)
+        {
+            editingEntityType = entityTypes?.FirstOrDefault(t => t.Id == selectedEntityTypeId.Value);
+            showEntityTypeDialog = true;
+        }
+    }
+
+    private void HideEntityTypeDialog()
+    {
+        showEntityTypeDialog = false;
+        editingEntityType = null;
+    }
+
+    private async Task HandleEntityTypeSave(ProductEntityType entityType)
+    {
+        try
+        {
+            if (editingEntityType != null)
+            {
+                entityType.Id = editingEntityType.Id;
+                await EntityTypeService.UpdateAsync(entityType);
+            }
+            else
+            {
+                await EntityTypeService.CreateAsync(entityType);
+            }
+            entityTypes = await EntityTypeService.GetAllAsync();
+            HideEntityTypeDialog();
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error saving entity type: {ex.Message}");
+        }
+    }
+
+    // Hierarchy Type Management
+    private void ShowHierarchyTypeDialog()
+    {
+        editingHierarchyType = null;
+        showHierarchyTypeDialog = true;
+    }
+
+    private void EditHierarchyType(HierarchyType hierarchyType)
+    {
+        editingHierarchyType = hierarchyType;
+        showHierarchyTypeDialog = true;
+    }
+
+    private void HideHierarchyTypeDialog()
+    {
+        showHierarchyTypeDialog = false;
+        editingHierarchyType = null;
+    }
+
+    private async Task HandleHierarchyTypeSave(HierarchyType hierarchyType)
+    {
+        try
+        {
+            if (editingHierarchyType != null)
+            {
+                hierarchyType.Id = editingHierarchyType.Id;
+                await HierarchyTypeService.UpdateAsync(hierarchyType);
+            }
+            else
+            {
+                await HierarchyTypeService.CreateAsync(hierarchyType);
+            }
+            hierarchyTypes = await HierarchyTypeService.GetAllAsync();
+            HideHierarchyTypeDialog();
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error saving hierarchy type: {ex.Message}");
+        }
+    }
+
+    // Locale Management
+    private void ShowLocaleDialog()
+    {
+        editingLocale = null;
+        showLocaleDialog = true;
+    }
+
+    private void EditSelectedLocale()
+    {
+        if (!string.IsNullOrEmpty(selectedLocaleCode))
+        {
+            editingLocale = locales?.FirstOrDefault(l => l.Code == selectedLocaleCode);
+            showLocaleDialog = true;
+        }
+    }
+
+    private void HideLocaleDialog()
+    {
+        showLocaleDialog = false;
+        editingLocale = null;
+    }
+
+    private async Task HandleLocaleSave(RegionalLocale locale)
+    {
+        try
+        {
+            if (editingLocale != null)
+            {
+                await LocaleService.UpdateAsync(locale);
+            }
+            else
+            {
+                await LocaleService.CreateAsync(locale);
+            }
+            locales = await LocaleService.GetAllAsync();
+            HideLocaleDialog();
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error saving locale: {ex.Message}");
         }
     }
 }

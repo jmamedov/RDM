@@ -8,7 +8,7 @@ namespace RDM.Core.Entities
     {
         [Column("HRCHY_TYP_ID")]
         [Required]
-        public long HierarchyTypeId { get; set; }
+        public int HierarchyTypeId { get; set; }
 
         [Column("PRNT_NDE_ID")]
         [Required]
@@ -20,7 +20,7 @@ namespace RDM.Core.Entities
 
         // Navigation properties
         [ForeignKey("HierarchyTypeId")]
-        public virtual ProductEntityType HierarchyType { get; set; } = null!;
+        public virtual HierarchyType HierarchyType { get; set; } = null!;
 
         [ForeignKey("ParentNodeId")]
         public virtual SourceNode ParentNode { get; set; } = null!;

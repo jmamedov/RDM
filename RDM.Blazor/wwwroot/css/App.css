@@ -21,7 +21,7 @@ body {
 /* Left Panel */
 .left-panel {
     width: 320px;
-    background: white;
+    background: #f1f5f9;
     border-right: 1px solid #e5e7eb;
     padding: 1.5rem;
     overflow-y: auto;
@@ -44,10 +44,28 @@ body {
     margin-bottom: 0.75rem;
 }
 
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.section-actions {
+    display: flex;
+    gap: 0.25rem;
+}
+
 .filter-label {
     display: block;
     font-weight: 600;
     margin-bottom: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.mt-1 {
+    margin-top: 0.5rem;
+    display: block;
     font-size: 0.875rem;
 }
 
@@ -136,6 +154,7 @@ body {
     flex-direction: column;
     padding: 1rem;
     overflow: hidden;
+    background-color: #ffffff;
 }
 
 /* Resize Handle */
@@ -171,7 +190,7 @@ body {
     display: flex;
     flex-direction: column;
     border-top: none;
-    background-color: #f9fafb;
+    background-color: #f8fafc;
     padding: 1rem;
     overflow: hidden;
 }
@@ -210,6 +229,7 @@ body {
         background-color: #f9fafb;
         position: sticky;
         top: 0;
+        z-index: 10;
     }
 
     .data-table th {
@@ -221,23 +241,34 @@ body {
         border-bottom: 1px solid #e5e7eb;
     }
 
-    .data-table td {
-        padding: 0.75rem 1rem;
-        font-size: 0.875rem;
-        border-bottom: 1px solid #e5e7eb;
+/* Sortable Header Styles */
+.sortable-header {
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.2s;
+}
+
+    .sortable-header:hover {
+        background-color: #e5e7eb;
     }
 
-    .data-table tbody tr {
-        cursor: pointer;
+.data-table td {
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.data-table tbody tr {
+    cursor: pointer;
+}
+
+    .data-table tbody tr:hover {
+        background-color: #f9fafb;
     }
 
-        .data-table tbody tr:hover {
-            background-color: #f9fafb;
-        }
-
-        .data-table tbody tr.selected {
-            background-color: #dbeafe;
-        }
+    .data-table tbody tr.selected {
+        background-color: #dbeafe;
+    }
 
 .empty-state {
     text-align: center;
@@ -363,6 +394,14 @@ body {
     gap: 0.5rem;
     justify-content: flex-end;
     margin-top: 1.5rem;
+}
+
+/* Utility Classes */
+.text-muted {
+    color: #6b7280;
+    font-size: 0.75rem;
+    margin-top: 0.25rem;
+    display: block;
 }
 
 /* Scrollbar Styles */

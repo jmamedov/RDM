@@ -1,0 +1,97 @@
+﻿@* SourceSystemDialog.razor - Place in Components/Shared/ folder *@
+@using RDM.Core.Entities
+
+<div class="modal-overlay" @onclick="HandleCancel">
+    <div class="modal-content" @onclick:stopPropagation="true">
+        <h3 class="modal-title">@(System == null ? "Add" : "Edit") Source System</h3>
+
+        <div class="form-group">
+            <label class="form-label">Code</label>
+            <input type="text" class="form-input" @bind="code" />
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Name</label>
+            <input type="text" class="form-input" @bind="name" />
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Parent System</label>
+            <select class="form-input" @bind="parentId">
+                <option value="">None (Root Level)</option>
+                @if (AllSystems != null)
+                {
+                    @foreach (var sys in AllSystems.Where(s => System == null || s.Id != System.Id))
+                    {
+                        <option value="@sys.Id">@(sys.Name ?? sys.Code ?? $"System {sys.Id}")</option>
+                    }
+                }
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Description</label>
+            <textarea class="form-input" rows="3" @bind="description"></textarea>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Source Path</label>
+            <input type="text" class="form-input" @bind="sourcePath" />
+        </div>
+
+        <div class="modal-actions">
+            <button class="btn btn-secondary" @onclick="HandleCancel">Cancel</button>
+            <button class="btn btn-primary" @onclick="HandleSave">Save</button>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public SourceSystem? System { get; set; }
+    [Parameter] public List<SourceSystem>? AllSystems { get; set; }
+    [Parameter] public EventCallback<SourceSystem> OnSave { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+
+    private string? code;
+    private string? name;
+    private string? parentId;
+    private string? description;
+    private string? sourcePath;
+
+    protected override void OnParametersSet()
+    {
+        if (System != null)
+        {
+            code = System.Code;
+            name = System.Name;
+            parentId = System.ParentId?.ToString();
+            description = System.Description;
+            sourcePath = System.SourcePathText;
+        }
+        else
+        {
+            code = null;
+            name = null;
+            parentId = null;
+            description = null;
+            sourcePath = null;
+        }
+    }
+
+    private async Task HandleSave()
+    {
+        var system = System ?? new SourceSystem();
+        system.Code = code;
+        system.Name = name;
+        system.ParentId = string.IsNullOrEmpty(parentId) ? null : long.Parse(parentId);
+        system.Description = description;
+        system.SourcePathText = sourcePath;
+
+        await OnSave.InvokeAsync(system);
+    }
+
+    private async Task HandleCancel()
+    {
+        await OnCancel.InvokeAsync();
+    }
+}

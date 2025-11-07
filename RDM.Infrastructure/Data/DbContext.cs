@@ -11,6 +11,7 @@ namespace RDM.Infrastructure.Data
 
         public DbSet<RegionalLocale> RegionalLocales { get; set; }
         public DbSet<ProductEntityType> ProductEntityTypes { get; set; }
+        public DbSet<HierarchyType> HierarchyTypes { get; set; }
         public DbSet<SourceSystem> SourceSystems { get; set; }
         public DbSet<SourceNode> SourceNodes { get; set; }
         public DbSet<NodeBillOfMaterial> NodeBillOfMaterials { get; set; }
@@ -36,6 +37,16 @@ namespace RDM.Infrastructure.Data
                 entity.Property(e => e.Id)
                     .HasColumnName("ID")
                     .UseIdentityColumn(13, 1);
+            });
+
+            // Hierarchy Type
+            modelBuilder.Entity<HierarchyType>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).HasColumnName("ID");
+                entity.Property(e => e.Code).HasColumnName("CD");
+                entity.Property(e => e.Name).HasColumnName("NM");
+                entity.Property(e => e.Description).HasColumnName("DN");
             });
 
             // Source System (Self-referencing hierarchy)
@@ -85,7 +96,7 @@ namespace RDM.Infrastructure.Data
                 entity.HasKey(e => new { e.HierarchyTypeId, e.ParentNodeId, e.ChildNodeId });
 
                 entity.HasOne(e => e.HierarchyType)
-                    .WithMany(e => e.Hierarchies)
+                    .WithMany(e => e.NodeBillOfMaterials)
                     .HasForeignKey(e => e.HierarchyTypeId)
                     .OnDelete(DeleteBehavior.Restrict);
 

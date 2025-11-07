@@ -20,6 +20,7 @@ builder.Services.AddDbContext<RdmDbContext>(options =>
 // Register application services
 builder.Services.AddScoped<IRegionalLocaleService, RegionalLocaleService>();
 builder.Services.AddScoped<IProductEntityTypeService, ProductEntityTypeService>();
+builder.Services.AddScoped<IHierarchyTypeService, HierarchyTypeService>();
 builder.Services.AddScoped<ISourceSystemService, SourceSystemService>();
 builder.Services.AddScoped<ISourceNodeService, SourceNodeService>();
 builder.Services.AddScoped<INodeBillOfMaterialService, NodeBillOfMaterialService>();
@@ -33,7 +34,7 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-//app.UseHttpsRedirection();
+app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseAntiforgery();
 

@@ -1,0 +1,92 @@
+﻿@* LocaleDialog.razor - Place in Components/Shared/ folder *@
+@using RDM.Core.Entities
+
+<div class="modal-overlay" @onclick="HandleCancel">
+    <div class="modal-content" @onclick:stopPropagation="true">
+        <h3 class="modal-title">@(Locale == null ? "Add" : "Edit") Locale</h3>
+
+        <div class="form-group">
+            <label class="form-label">Code (ISO) *</label>
+            <input type="text" class="form-input" @bind="code" required
+                   disabled="@(Locale != null)"
+                   placeholder="e.g., en-US, de-DE" />
+            @if (Locale != null)
+            {
+                <small class="text-muted">Code cannot be changed after creation</small>
+            }
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Name *</label>
+            <input type="text" class="form-input" @bind="name" required
+                   placeholder="e.g., English (United States)" />
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Continent Code *</label>
+            <input type="text" class="form-input" @bind="continentCode" required
+                   placeholder="e.g., NA, EU, AS" />
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Description</label>
+            <textarea class="form-input" rows="3" @bind="description"></textarea>
+        </div>
+
+        <div class="modal-actions">
+            <button class="btn btn-secondary" @onclick="HandleCancel">Cancel</button>
+            <button class="btn btn-primary" @onclick="HandleSave">Save</button>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public RegionalLocale? Locale { get; set; }
+    [Parameter] public EventCallback<RegionalLocale> OnSave { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+
+    private string code = "";
+    private string name = "";
+    private string continentCode = "";
+    private string? description;
+
+    protected override void OnParametersSet()
+    {
+        if (Locale != null)
+        {
+            code = Locale.Code;
+            name = Locale.Name;
+            continentCode = Locale.ContinentCode;
+            description = Locale.Description;
+        }
+        else
+        {
+            code = "";
+            name = "";
+            continentCode = "";
+            description = null;
+        }
+    }
+
+    private async Task HandleSave()
+    {
+        if (string.IsNullOrWhiteSpace(code) || string.IsNullOrWhiteSpace(name) ||
+            string.IsNullOrWhiteSpace(continentCode))
+        {
+            return;
+        }
+
+        var locale = Locale ?? new RegionalLocale();
+        locale.Code = code;
+        locale.Name = name;
+        locale.ContinentCode = continentCode;
+        locale.Description = description;
+
+        await OnSave.InvokeAsync(locale);
+    }
+
+    private async Task HandleCancel()
+    {
+        await OnCancel.InvokeAsync();
+    }
+}
