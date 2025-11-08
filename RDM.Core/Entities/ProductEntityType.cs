@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace RDM.Core.Entities
 {
-    [Table("PROD_ENT_TYP", Schema = "PROD04")]
+    [Table("ENT_TYP", Schema = "PRDCT_01")]
     public class ProductEntityType
     {
         [Key]

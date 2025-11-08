@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace RDM.Core.Entities
 {
-    [Table("HRCHY_TYP", Schema = "PROD04")]
+    [Table("HRCHY_TYP", Schema = "PRDCT_01")]
     public class HierarchyType
     {
         [Key]

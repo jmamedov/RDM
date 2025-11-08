@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace RDM.Core.Entities
 {
-    [Table("SRC_SYS", Schema = "PROD04")]
+    [Table("SRC_SYS", Schema = "PRDCT_01")]
     public class SourceSystem
     {
         [Key]

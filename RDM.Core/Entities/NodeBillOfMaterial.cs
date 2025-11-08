@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace RDM.Core.Entities
 {
-    [Table("NDE_BIL_OF_MTRL", Schema = "PROD04")]
+    [Table("NDE_BIL_OF_MTRL", Schema = "PRDCT_01")]
     public class NodeBillOfMaterial
     {
         [Column("HRCHY_TYP_ID")]

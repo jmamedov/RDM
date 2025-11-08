@@ -5,7 +5,7 @@ namespace RDM.Core.Entities
 {
 
 
-    [Table("SRC_NDE", Schema = "PROD04")]
+    [Table("SRC_NDE", Schema = "PRDCT_01")]
 public class SourceNode
 {
     [Key]

@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace RDM.Core.Entities
 {
-    [Table("RGNL_LCLE", Schema = "dbo")]
+    [Table("RGNL_LCLE", Schema = "SHARED")]
     public class RegionalLocale
     {
         [Key]
