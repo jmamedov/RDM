@@ -1,7 +1,10 @@
-﻿using Microsoft.EntityFrameworkCore;
-using RDM.Infrastructure.Data;
-using RDM.Blazor.Services;
+﻿using ClosedXML.Excel;
+using Microsoft.EntityFrameworkCore;
 using RDM.Blazor.Components;
+using RDM.Blazor.Services;
+using RDM.Infrastructure.Data;
+
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -56,5 +59,58 @@ using (var scope = app.Services.CreateScope())
         logger.LogError(ex, "An error occurred while migrating the database.");
     }
 }
+
+app.MapGet("/api/export/nodes", async (
+ ISourceNodeService nodeService,
+ long? sourceId,
+ long? entityTypeId,
+ string? localeCode,
+ string? search) =>
+{
+ var nodes = await nodeService.GetAllAsync(sourceId, entityTypeId, localeCode);
+
+ // Apply search filter (same as UI)
+ if (!string.IsNullOrWhiteSpace(search))
+ {
+ var searchLower = search.ToLowerInvariant();
+ nodes = nodes.Where(n =>
+ (n.Code?.ToLowerInvariant().Contains(searchLower) ?? false) ||
+ (n.Name?.ToLowerInvariant().Contains(searchLower) ?? false) ||
+ (n.Description?.ToLowerInvariant().Contains(searchLower) ?? false) ||
+ (n.EntityType?.Name?.ToLowerInvariant().Contains(searchLower) ?? false) ||
+ (n.Locale?.Name?.ToLowerInvariant().Contains(searchLower) ?? false) ||
+ (n.SourceSystem?.Name?.ToLowerInvariant().Contains(searchLower) ?? false)
+ ).ToList();
+ }
+
+ using var workbook = new XLWorkbook();
+ var worksheet = workbook.Worksheets.Add("Nodes");
+
+ // Header
+ worksheet.Cell(1,1).Value = "Code";
+ worksheet.Cell(1,2).Value = "Name";
+ worksheet.Cell(1,3).Value = "Description";
+ worksheet.Cell(1,4).Value = "Entity Type";
+ worksheet.Cell(1,5).Value = "Locale";
+ worksheet.Cell(1,6).Value = "Source System";
+
+ // Data
+ int row =2;
+ foreach (var n in nodes)
+ {
+ worksheet.Cell(row,1).Value = n.Code;
+ worksheet.Cell(row,2).Value = n.Name;
+ worksheet.Cell(row,3).Value = n.Description;
+ worksheet.Cell(row,4).Value = n.EntityType?.Name;
+ worksheet.Cell(row,5).Value = n.Locale?.Name;
+ worksheet.Cell(row,6).Value = n.SourceSystem?.Name;
+ row++;
+ }
+
+ using var stream = new MemoryStream();
+ workbook.SaveAs(stream);
+ stream.Position =0;
+ return Results.File(stream.ToArray(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "nodes.xlsx");
+});
 
 app.Run();

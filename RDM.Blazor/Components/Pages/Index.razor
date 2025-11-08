@@ -19,7 +19,7 @@
         <button class="btn btn-secondary clear-filters-btn" @onclick="ClearFilters" aria-label="Clear all filters">
             Clear Filters
         </button>
-   tton>
+   
 
         <!-- Source Systems -->
         <div class="filter-section" aria-labelledby="source-systems-label">
@@ -137,6 +137,9 @@
                                style="width: 100%;" />
                     </div>
                 </div>
+                <button class="btn btn-secondary" @onclick="ExportNodesToExcel">
+                    <span class="btn-icon">📤</span> Export to Excel
+                </button>
                 <button class="btn btn-primary" @onclick="ShowNodeDialog">
                     <span class="btn-icon">➕</span> Add Node
                 </button>
@@ -1044,5 +1047,24 @@
         selectedEntityTypeId = null;
         selectedLocaleCode = null;
         _ = LoadSourceNodes();
+    }
+
+    private async Task ExportNodesToExcel()
+    {
+        var query = new List<string>();
+        if (selectedSourceSystemId.HasValue)
+            query.Add($"sourceId={selectedSourceSystemId}");
+        if (selectedEntityTypeId.HasValue)
+            query.Add($"entityTypeId={selectedEntityTypeId}");
+        if (!string.IsNullOrEmpty(selectedLocaleCode))
+            query.Add($"localeCode={Uri.EscapeDataString(selectedLocaleCode)}");
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+            query.Add($"search={Uri.EscapeDataString(searchTerm)}");
+
+        var url = "/api/export/nodes";
+        if (query.Count >0)
+            url += "?" + string.Join("&", query);
+
+        await JSRuntime.InvokeVoidAsync("open", url, "_blank");
     }
 }
