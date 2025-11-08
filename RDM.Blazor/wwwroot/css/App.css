@@ -21,8 +21,8 @@ body {
 /* Left Panel */
 .left-panel {
     width: 320px;
-    background: #f1f5f9;
-    border-right: 1px solid #e5e7eb;
+    background: #e3e8f0; /* more distinct blue-gray */
+    border-right: 1px solid #cbd5e1; /* slightly darker border */
     padding: 1.5rem;
     overflow-y: auto;
 }
@@ -78,7 +78,7 @@ body {
     background: white;
 }
 
-    .filter-select:focus {
+.filter-select:focus {
         outline: 2px solid #3b82f6;
         outline-offset: 2px;
     }
@@ -145,6 +145,8 @@ body {
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    background: #f9fafb; /* off-white for contrast */
+    border-left: 1px solid #e5e7eb; /* subtle separation */
 }
 
 .nodes-panel {
@@ -200,10 +202,11 @@ body {
     justify-content: space-between;
     align-items: center;
     padding: 1rem;
-    background: white;
+    background: #e0e7ef; /* more distinct header */
+    color: #1e293b;
     border-radius: 0.5rem;
     margin-bottom: 1rem;
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.07);
 }
 
 .panel-header-title {
@@ -291,13 +294,13 @@ body {
 }
 
 .btn-primary {
-    background-color: #3b82f6;
-    color: white;
+    background: #2563eb;
+    color: #fff;
 }
 
-    .btn-primary:hover {
-        background-color: #2563eb;
-    }
+.btn-primary:hover {
+    background: #1d4ed8;
+}
 
 .btn-success {
     background-color: #10b981;

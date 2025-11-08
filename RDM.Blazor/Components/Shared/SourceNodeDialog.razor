@@ -1,13 +1,14 @@
 ﻿@* SourceNodeDialog.razor - Place in Components/Shared/ folder *@
 @using RDM.Core.Entities
+@inject IJSRuntime JS
 
-<div class="modal-overlay" @onclick="HandleCancel">
+<div class="modal-overlay" id="nodeModal" @onclick="HandleCancel" tabindex="0" @onkeydown="HandleKeyDown">
     <div class="modal-content" @onclick:stopPropagation="true">
         <h3 class="modal-title">@(Node == null ? "Add" : "Edit") Source Node</h3>
 
         <div class="form-group">
             <label class="form-label">Code *</label>
-            <input type="text" class="form-input" @bind="code" required />
+            <input id="nodeCode" type="text" class="form-input" @bind="code" required @ref="codeInput" />
         </div>
 
         <div class="form-group">
@@ -86,6 +87,10 @@
     private string localeCode = "en-US";
     private string? description;
 
+    private ElementReference codeInput;
+    private bool shouldFocus = false;
+    private bool trapActive = false;
+
     protected override void OnParametersSet()
     {
         if (Node != null)
@@ -108,10 +113,26 @@
             localeCode = DefaultLocaleCode ?? "en-US";
             description = null;
         }
+        shouldFocus = true;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (shouldFocus)
+        {
+            shouldFocus = false;
+            await JS.InvokeVoidAsync("focusElement", codeInput);
+            if (!trapActive)
+            {
+                await JS.InvokeVoidAsync("trapFocus", "#nodeModal");
+                trapActive = true;
+            }
+        }
     }
 
     private async Task HandleSave()
     {
+        await ReleaseTrap();
         if (string.IsNullOrWhiteSpace(code) || string.IsNullOrWhiteSpace(name) ||
             sourceId == 0 || entityTypeId == 0)
         {
@@ -131,6 +152,24 @@
 
     private async Task HandleCancel()
     {
+        await ReleaseTrap();
         await OnCancel.InvokeAsync();
+    }
+
+    private async Task ReleaseTrap()
+    {
+        if (trapActive)
+        {
+            await JS.InvokeVoidAsync("releaseTrapFocus", "#nodeModal");
+            trapActive = false;
+        }
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape")
+        {
+            await HandleCancel();
+        }
     }
 }

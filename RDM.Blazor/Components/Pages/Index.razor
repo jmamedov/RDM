@@ -14,21 +14,26 @@
 
 <div class="rdm-container">
     <!-- Left Panel -->
-    <div class="left-panel">
+    <div class="left-panel" aria-label="Filters Sidebar">
         <h2 class="panel-title">Reference Data Manager</h2>
+        <button class="btn btn-secondary clear-filters-btn" @onclick="ClearFilters" aria-label="Clear all filters">
+            Clear Filters
+        </button>
+   tton>
 
         <!-- Source Systems -->
-        <div class="filter-section">
+        <div class="filter-section" aria-labelledby="source-systems-label">
             <div class="section-header">
-                <h3 class="filter-title">Source Systems</h3>
+                <h3 class="filter-title" id="source-systems-label">Source Systems</h3>
                 <div class="section-actions">
-                    <button class="btn-icon-action" @onclick="ShowSourceSystemDialog" title="Add Source System">
+                    <button class="btn-icon-action" @onclick="ShowSourceSystemDialog" title="Add Source System"
+                            aria-label="Add Source System">
                         ➕
                     </button>
                 </div>
             </div>
             <div class="tree-container">
-                @if (sourceSystems != null)
+                @if (sourceSystems != null && sourceSystems.Any())
                 {
                     @foreach (var system in sourceSystems)
                     {
@@ -39,22 +44,28 @@
                                               OnDelete="@HandleSourceSystemDelete" />
                     }
                 }
+                else
+                {
+                    <div class="empty-state">No source systems available.</div>
+                }
             </div>
         </div>
 
         <!-- Entity Type Filter -->
-        <div class="filter-section">
+        <div class="filter-section" aria-labelledby="entity-type-label">
             <div class="section-header">
-                <label class="filter-label">Entity Type</label>
+                <label class="filter-label" id="entity-type-label">Entity Type</label>
                 <div class="section-actions">
-                    <button class="btn-icon-action" @onclick="ShowEntityTypeDialog" title="Add Entity Type">
+                    <button class="btn-icon-action" @onclick="ShowEntityTypeDialog" title="Add Entity Type"
+                            aria-label="Add Entity Type">
                         ➕
                     </button>
                 </div>
             </div>
-            <select class="filter-select" @bind="selectedEntityTypeId" @bind:after="LoadSourceNodes">
+            <select class="filter-select @(selectedEntityTypeId.HasValue && selectedEntityTypeId.Value >0 ? "active-filter" : null)"
+                    @bind="selectedEntityTypeId" @bind:after="LoadSourceNodes" aria-label="Entity Type">
                 <option value="">All Types</option>
-                @if (entityTypes != null)
+                @if (entityTypes != null && entityTypes.Any())
                 {
                     @foreach (var type in entityTypes)
                     {
@@ -62,27 +73,33 @@
                     }
                 }
             </select>
-            @if (selectedEntityTypeId.HasValue && selectedEntityTypeId.Value > 0)
+            @if (entityTypes == null || !entityTypes.Any())
             {
-                <button class="btn-icon-action mt-1" @onclick="EditSelectedEntityType" title="Edit Selected">
+                <div class="empty-state">No entity types available.</div>
+            }
+            @if (selectedEntityTypeId.HasValue && selectedEntityTypeId.Value >0)
+            {
+                <button class="btn-icon-action mt-1" @onclick="EditSelectedEntityType" title="Edit Selected"
+                        aria-label="Edit Selected Entity Type">
                     ✏️ Edit
                 </button>
             }
         </div>
 
         <!-- Locale Filter -->
-        <div class="filter-section">
+        <div class="filter-section" aria-labelledby="locale-label">
             <div class="section-header">
-                <label class="filter-label">Locale</label>
+                <label class="filter-label" id="locale-label">Locale</label>
                 <div class="section-actions">
-                    <button class="btn-icon-action" @onclick="ShowLocaleDialog" title="Add Locale">
+                    <button class="btn-icon-action" @onclick="ShowLocaleDialog" title="Add Locale" aria-label="Add Locale">
                         ➕
                     </button>
                 </div>
             </div>
-            <select class="filter-select" @bind="selectedLocaleCode" @bind:after="LoadSourceNodes">
+            <select class="filter-select @(string.IsNullOrEmpty(selectedLocaleCode) ? null : "active-filter")"
+                    @bind="selectedLocaleCode" @bind:after="LoadSourceNodes" aria-label="Locale">
                 <option value="">All Locales</option>
-                @if (locales != null)
+                @if (locales != null && locales.Any())
                 {
                     @foreach (var locale in locales)
                     {
@@ -90,9 +107,14 @@
                     }
                 }
             </select>
+            @if (locales == null || !locales.Any())
+            {
+                <div class="empty-state">No locales available.</div>
+            }
             @if (!string.IsNullOrEmpty(selectedLocaleCode))
             {
-                <button class="btn-icon-action mt-1" @onclick="EditSelectedLocale" title="Edit Selected">
+                <button class="btn-icon-action mt-1" @onclick="EditSelectedLocale" title="Edit Selected"
+                        aria-label="Edit Selected Locale">
                     ✏️ Edit
                 </button>
             }
@@ -104,7 +126,17 @@
         <!-- Source Nodes Grid -->
         <div class="nodes-panel" id="nodesPanel">
             <div class="panel-header">
-                <h3 class="panel-header-title">Source Nodes</h3>
+                <div style="flex: 1;">
+                    <h3 class="panel-header-title">Reference Data Values</h3>
+                    <div style="margin-top: 0.5rem; max-width: 400px;">
+                        <input type="text"
+                               class="form-input"
+                               placeholder="Search nodes by code, name, or description..."
+                               @bind="searchTerm"
+                               @bind:after="ApplySearchAndSort"
+                               style="width: 100%;" />
+                    </div>
+                </div>
                 <button class="btn btn-primary" @onclick="ShowNodeDialog">
                     <span class="btn-icon">➕</span> Add Node
                 </button>
@@ -114,21 +146,33 @@
                 <table class="data-table" tabindex="0" @onkeydown="HandleNodesKeyDown" @ref="nodesTableRef">
                     <thead>
                         <tr>
-                            <th>Code</th>
-                            <th>Name</th>
-                            <th>Description</th>
-                            <th>Entity Type</th>
-                            <th>Locale</th>
-                            <th>Source System</th>
+                            <th class="sortable-header" @onclick="@(() => ToggleSort("Code"))">
+                                Code @GetSortIndicator("Code")
+                            </th>
+                            <th class="sortable-header" @onclick="@(() => ToggleSort("Name"))">
+                                Name @GetSortIndicator("Name")
+                            </th>
+                            <th class="sortable-header" @onclick="@(() => ToggleSort("Description"))">
+                                Description @GetSortIndicator("Description")
+                            </th>
+                            <th class="sortable-header" @onclick="@(() => ToggleSort("EntityType"))">
+                                Entity Type @GetSortIndicator("EntityType")
+                            </th>
+                            <th class="sortable-header" @onclick="@(() => ToggleSort("Locale"))">
+                                Locale @GetSortIndicator("Locale")
+                            </th>
+                            <th class="sortable-header" @onclick="@(() => ToggleSort("SourceSystem"))">
+                                Source System @GetSortIndicator("SourceSystem")
+                            </th>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @if (sourceNodes != null && sourceNodes.Any())
+                        @if (filteredNodes != null && filteredNodes.Any())
                         {
-                            @for (int i = 0; i < sourceNodes.Count; i++)
+                            @for (int i = 0; i < filteredNodes.Count; i++)
                             {
-                                var node = sourceNodes[i];
+                                var node = filteredNodes[i];
                                 var index = i;
                                 <tr class="@(selectedNode?.Id == node.Id ? "selected" : "")"
                                     @onclick="@(() => SelectNode(node))"
@@ -153,7 +197,16 @@
                         else
                         {
                             <tr>
-                                <td colspan="7" class="empty-state">No nodes found. Select filters or add a new node.</td>
+                                <td colspan="7" class="empty-state">
+                                    @if (!string.IsNullOrWhiteSpace(searchTerm))
+                                    {
+                                        <text>No nodes match your search. Try different keywords.</text>
+                                    }
+                                    else
+                                    {
+                                        <text>No nodes found. Select filters or add a new node.</text>
+                                    }
+                                </td>
                             </tr>
                         }
                     </tbody>
@@ -319,6 +372,7 @@
     private List<HierarchyType>? hierarchyTypes;
     private List<RegionalLocale>? locales;
     private List<SourceNode>? sourceNodes;
+    private List<SourceNode>? filteredNodes;
     private List<NodeBillOfMaterial>? billOfMaterials;
     private List<NodeBillOfMaterial>? allBillOfMaterials;
 
@@ -328,6 +382,11 @@
     private int? selectedHierarchyTypeId;
     private SourceNode? selectedNode;
     private int selectedBomIndex = -1;
+
+    // Search and Sort state
+    private string searchTerm = "";
+    private string sortColumn = "Name";
+    private bool sortAscending = true;
 
     private ElementReference nodesTableRef;
     private ElementReference bomTableRef;
@@ -345,6 +404,8 @@
     private HierarchyType? editingHierarchyType;
     private RegionalLocale? editingLocale;
 
+    private DotNetObjectReference<Index>? _dotNetRef;
+
     protected override async Task OnInitializedAsync()
     {
         await LoadData();
@@ -357,11 +418,43 @@
             try
             {
                 await JSRuntime.InvokeVoidAsync("initializeResizer");
+                _dotNetRef = DotNetObjectReference.Create(this);
+                await JSRuntime.InvokeVoidAsync("import", "/js/shortcuts.js");
+                await JSRuntime.InvokeVoidAsync("rdmShortcuts.init", _dotNetRef);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error initializing resizer: {ex.Message}");
+                Console.WriteLine($"Error initializing resizer or shortcuts: {ex.Message}");
             }
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_dotNetRef != null)
+        {
+            await JSRuntime.InvokeVoidAsync("rdmShortcuts.dispose");
+            _dotNetRef.Dispose();
+        }
+    }
+
+    [JSInvokable]
+    public void ShowNodeDialogFromShortcut()
+    {
+        if (!showNodeDialog && !showBomDialog && !showSourceSystemDialog && !showEntityTypeDialog && !showHierarchyTypeDialog && !showLocaleDialog)
+        {
+            ShowNodeDialog();
+            StateHasChanged();
+        }
+    }
+
+    [JSInvokable]
+    public void ShowBomDialogFromShortcut()
+    {
+        if (selectedNode != null && !showNodeDialog && !showBomDialog && !showSourceSystemDialog && !showEntityTypeDialog && !showHierarchyTypeDialog && !showLocaleDialog)
+        {
+            ShowBomDialog();
+            StateHasChanged();
         }
     }
 
@@ -378,7 +471,88 @@
     private async Task LoadSourceNodes()
     {
         sourceNodes = await SourceNodeService.GetAllAsync(selectedSourceSystemId, selectedEntityTypeId, selectedLocaleCode);
+        ApplySearchAndSort();
+
+        // Clear selection and BOM when filters change
+        selectedNode = null;
+        billOfMaterials = null;
+        allBillOfMaterials = null;
+        selectedBomIndex = -1;
+
         StateHasChanged();
+    }
+
+    private void ToggleSort(string column)
+    {
+        if (sortColumn == column)
+        {
+            sortAscending = !sortAscending;
+        }
+        else
+        {
+            sortColumn = column;
+            sortAscending = true;
+        }
+        ApplySearchAndSort();
+    }
+
+    private string GetSortIndicator(string column)
+    {
+        if (sortColumn != column)
+            return "";
+
+        return sortAscending ? " ▲" : " ▼";
+    }
+
+    private void ApplySearchAndSort()
+    {
+        if (sourceNodes == null)
+        {
+            filteredNodes = null;
+            return;
+        }
+
+        // Apply search filter
+        var filtered = sourceNodes.AsEnumerable();
+
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            var search = searchTerm.ToLowerInvariant();
+            filtered = filtered.Where(n =>
+                (n.Code?.ToLowerInvariant().Contains(search) ?? false) ||
+                (n.Name?.ToLowerInvariant().Contains(search) ?? false) ||
+                (n.Description?.ToLowerInvariant().Contains(search) ?? false) ||
+                (n.EntityType?.Name?.ToLowerInvariant().Contains(search) ?? false) ||
+                (n.Locale?.Name?.ToLowerInvariant().Contains(search) ?? false) ||
+                (n.SourceSystem?.Name?.ToLowerInvariant().Contains(search) ?? false)
+            );
+        }
+
+        // Apply sorting
+        filtered = sortColumn switch
+        {
+            "Code" => sortAscending
+                ? filtered.OrderBy(n => n.Code)
+                : filtered.OrderByDescending(n => n.Code),
+            "Name" => sortAscending
+                ? filtered.OrderBy(n => n.Name)
+                : filtered.OrderByDescending(n => n.Name),
+            "Description" => sortAscending
+                ? filtered.OrderBy(n => n.Description)
+                : filtered.OrderByDescending(n => n.Description),
+            "EntityType" => sortAscending
+                ? filtered.OrderBy(n => n.EntityType?.Name)
+                : filtered.OrderByDescending(n => n.EntityType?.Name),
+            "Locale" => sortAscending
+                ? filtered.OrderBy(n => n.Locale?.Name)
+                : filtered.OrderByDescending(n => n.Locale?.Name),
+            "SourceSystem" => sortAscending
+                ? filtered.OrderBy(n => n.SourceSystem?.Name)
+                : filtered.OrderByDescending(n => n.SourceSystem?.Name),
+            _ => filtered.OrderBy(n => n.Name)
+        };
+
+        filteredNodes = filtered.ToList();
     }
 
     private async Task HandleSourceSystemSelect(long systemId)
@@ -464,19 +638,19 @@
 
     private async Task HandleNodesKeyDown(KeyboardEventArgs e)
     {
-        if (sourceNodes == null || !sourceNodes.Any())
+        if (filteredNodes == null || !filteredNodes.Any())
             return;
 
         int currentIndex = selectedNode != null
-            ? sourceNodes.FindIndex(n => n.Id == selectedNode.Id)
+            ? filteredNodes.FindIndex(n => n.Id == selectedNode.Id)
             : -1;
 
         switch (e.Key)
         {
             case "ArrowDown":
-                if (currentIndex < sourceNodes.Count - 1)
+                if (currentIndex < filteredNodes.Count - 1)
                 {
-                    await SelectNode(sourceNodes[currentIndex + 1]);
+                    await SelectNode(filteredNodes[currentIndex + 1]);
                     await ScrollRowIntoView(nodesTableRef, currentIndex + 1);
                 }
                 break;
@@ -484,12 +658,12 @@
             case "ArrowUp":
                 if (currentIndex > 0)
                 {
-                    await SelectNode(sourceNodes[currentIndex - 1]);
+                    await SelectNode(filteredNodes[currentIndex - 1]);
                     await ScrollRowIntoView(nodesTableRef, currentIndex - 1);
                 }
-                else if (currentIndex == -1 && sourceNodes.Any())
+                else if (currentIndex == -1 && filteredNodes.Any())
                 {
-                    await SelectNode(sourceNodes[0]);
+                    await SelectNode(filteredNodes[0]);
                     await ScrollRowIntoView(nodesTableRef, 0);
                 }
                 break;
@@ -509,18 +683,18 @@
                 break;
 
             case "Home":
-                if (sourceNodes.Any())
+                if (filteredNodes.Any())
                 {
-                    await SelectNode(sourceNodes[0]);
+                    await SelectNode(filteredNodes[0]);
                     await ScrollRowIntoView(nodesTableRef, 0);
                 }
                 break;
 
             case "End":
-                if (sourceNodes.Any())
+                if (filteredNodes.Any())
                 {
-                    await SelectNode(sourceNodes[^1]);
-                    await ScrollRowIntoView(nodesTableRef, sourceNodes.Count - 1);
+                    await SelectNode(filteredNodes[^1]);
+                    await ScrollRowIntoView(nodesTableRef, filteredNodes.Count - 1);
                 }
                 break;
         }
@@ -862,5 +1036,13 @@
         {
             await JSRuntime.InvokeVoidAsync("alert", $"Error saving locale: {ex.Message}");
         }
+    }
+
+    private void ClearFilters()
+    {
+        selectedSourceSystemId = null;
+        selectedEntityTypeId = null;
+        selectedLocaleCode = null;
+        _ = LoadSourceNodes();
     }
 }
